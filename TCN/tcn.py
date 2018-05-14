@@ -20,7 +20,7 @@ class TemporalBlock(nn.Module):
         # self.chomp1 = Chomp1d(padding)
         self.pad = torch.nn.ZeroPad2d((padding, 0, 0, 0))
         self.relu = nn.ReLU()
-        self.dropout = nn.Dropout2d(dropout)
+        self.dropout = nn.Dropout(dropout)
 
         self.conv2 = weight_norm(nn.Conv2d(n_outputs, n_outputs, (1, kernel_size),
                                            stride=stride, padding=0, dilation=dilation))
