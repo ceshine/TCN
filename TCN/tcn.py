@@ -15,20 +15,20 @@ class Chomp1d(nn.Module):
 class TemporalBlock(nn.Module):
     def __init__(self, n_inputs, n_outputs, kernel_size, stride, dilation, padding, dropout=0.2):
         super(TemporalBlock, self).__init__()
-        self.conv1 = weight_norm(nn.Conv1d(n_inputs, n_outputs, kernel_size,
-                                           stride=stride, padding=padding, dilation=dilation))
-        self.chomp1 = Chomp1d(padding)
-        self.relu1 = nn.ReLU()
-        self.dropout1 = nn.Dropout2d(dropout)
+        self.conv1 = weight_norm(nn.Conv2d(n_inputs, n_outputs, (1, kernel_size),
+                                           stride=stride, padding=0, dilation=dilation))
+        # self.chomp1 = Chomp1d(padding)
+        self.pad = torch.nn.ZeroPad2d((padding, 0, 0, 0))
+        self.relu = nn.ReLU()
+        self.dropout = nn.Dropout2d(dropout)
 
-        self.conv2 = weight_norm(nn.Conv1d(n_outputs, n_outputs, kernel_size,
-                                           stride=stride, padding=padding, dilation=dilation))
-        self.chomp2 = Chomp1d(padding)
-        self.relu2 = nn.ReLU()
-        self.dropout2 = nn.Dropout2d(dropout)
+        self.conv2 = weight_norm(nn.Conv2d(n_outputs, n_outputs, (1, kernel_size),
+                                           stride=stride, padding=0, dilation=dilation))
+        # self.chomp2 = Chomp1d(padding)
+        # self.relu2 = nn.ReLU()
 
-        self.net = nn.Sequential(self.conv1, self.chomp1, self.relu1, self.dropout1,
-                                 self.conv2, self.chomp2, self.relu2, self.dropout2)
+        self.net = nn.Sequential(self.pad, self.conv1, self.relu, self.dropout,
+                                 self.pad, self.conv2, self.relu, self.dropout)
         self.downsample = nn.Conv1d(n_inputs, n_outputs, 1) if n_inputs != n_outputs else None
         self.relu = nn.ReLU()
         self.init_weights()
@@ -40,7 +40,7 @@ class TemporalBlock(nn.Module):
             self.downsample.weight.data.normal_(0, 0.01)
 
     def forward(self, x):
-        out = self.net(x)
+        out = self.net(x.unsqueeze(2)).squeeze(2)
         res = x if self.downsample is None else self.downsample(x)
         return self.relu(out + res)
 
